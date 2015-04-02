@@ -29,3 +29,19 @@ class Obstacle(object):
         y = self.radius * np.outer(np.sin(u), np.sin(v)) + self.position[1]
         z = self.radius * np.outer(np.ones(np.size(u)), np.cos(v)) + self.position[2]
         subplot.plot_surface(x, y, z,  rstride=4, cstride=4, linewidth = 0, color='#ffff00')
+
+
+# a goal obstacle is a special obstacle which is basically a goal
+class GoalObstacle(object):
+
+    def __init__(self,position,height,width):
+        self.position=position
+        self.height=height
+        self.width=width
+
+    def draw(self,subplot):
+        u=np.linspace(self.position[1],self.position[1]+self.width,50)
+        v=np.linspace(self.position[0],self.position[0]+1,50)
+        z=np.linspace(self.position[2],self.position[2]+self.height,50)
+        X, Y = np.meshgrid(u, z) 
+        subplot.plot_wireframe(v, X, Y,  rstride=4, cstride=4,color='#ffff00')

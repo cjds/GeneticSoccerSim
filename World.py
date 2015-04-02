@@ -19,6 +19,7 @@ class World(object):
         self.agents=[]
         self.obstacles=[]
         self.balls=[]
+        self.teams=[]
         self.width = width
         self.height = height
         
@@ -34,6 +35,8 @@ class World(object):
             obstacle.draw(ax)
         for ball in self.balls:
             ball.draw(ax)
+        for team in self.teams:
+            team.goal.draw(ax)            
         return ax
 
 

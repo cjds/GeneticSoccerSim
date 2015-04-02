@@ -17,6 +17,7 @@ from Ball import Ball
 from LinearAlegebraUtils import distBetween
 from PreyBrain import PreyBrain
 from PredatorBrain import PredatorBrain
+from SoccerBrain import SoccerBrain
 from Team import Team
 from SimTime import SimTime
 from StatsTracker import StatsTracker
@@ -37,7 +38,13 @@ class Simulator(object):
         self.fps = fps
         self.imageDirName = imageDirName
         self.currWP = 0
-        self.ballWPs = [array([50.0, -100.0, 0.0]), array([0.0, 100.0, -70.0]), array([50.0, 20.0, 100.0]),array([-30.0, 50.0, -100.0]), array([80.0, -50.0, 50.0]), array([80.0, -50.0, -50.0]), array([-65.0, 20.0, 50.0]), array([-50.0, 20.0, -60.0])]
+        self.scoreTeam1=0
+        self.scoreTeam2=0
+        self.finalScore=5
+        self.teamSize=4
+        self.ballInitialPosition=array([0,0,-150])
+        self.teamPosition= [array([-50,50,-150]),array([-50,-50,-150]),array([-100,100,-150]),array([-100,-100,-150]),array([50,50,-150]),array([50,-50,-150]),array([100,100,-150]),array([100,-100,-150])]
+        #self.ballWPs = [array([50.0, -100.0, 0.0]), array([0.0, 100.0, -70.0]), array([50.0, 20.0, 100.0]),array([-30.0, 50.0, -100.0]), array([80.0, -50.0, 50.0]), array([80.0, -50.0, -50.0]), array([-65.0, 20.0, 50.0]), array([-50.0, 20.0, -60.0])]
 
     def setup(self):    
         #setup directory to save the images
@@ -48,46 +55,40 @@ class Simulator(object):
 
   
          #define teams which the agents can be a part of
-        predator = Team("Predator", '#ff99ff')
-        prey = Team("Prey", '#ffcc99')
+        predator = Team("Predator", '#ff99ff',GoalObstacle([-150,-50,-150],50,100))
+        prey = Team("Prey", '#ffcc99',GoalObstacle([150,-50,-150],50,100))
         #Defining a couple of agents 
 
-        #predator and prey counts
-        predatorCount = 5
-        preyCount = 10
-        displacement = array([0, 20, 0])
+        self.world.teams=[predator,prey]
 
-        #initial seed positions
-        predatorPos = array([100, 100, 0])
-        preyPos = array([0, 0, 0])
-
-        #initialize predators
-        for i in range(0, predatorCount):
-            brain = PredatorBrain()
-            agent = Agent(predator, predatorPos, array([0, 0, 0]), brain, 5, 5, 5)
+        #initialize Team 1
+        for i in range(0,self.teamSize):
+            brain = SoccerBrain()
+            agent = Agent(predator,  self.teamPosition[i], array([0,0,0]),brain, 5, 5, 5)
             self.world.addAgent(agent)
-            predatorPos+=displacement
 
-        #initialize prey
-        for i in range(0, preyCount):
-            brain = PreyBrain()
-            agent = RestrictedAgent(prey, preyPos, array([0, 0, 0]), brain, 2, 200, 2, 2)
+        #initialize Team 2
+        for i in range(0, self.teamSize):
+            brain = SoccerBrain()
+            agent = Agent(prey, self.teamPosition[i+self.teamSize],array([0,0,0]), brain, 5, 5, 5)
             self.world.addAgent(agent)
-            preyPos+=displacement
 
-#         
+        ball=Ball (self.ballInitialPosition)
+        ball.isDynamic = True
+        self.world.addBall(ball)
+  
         #define a bunch of obstacles
-        ob1Pos = array([-50,-50,-50])
-        ob1 = Obstacle(ob1Pos, 30)
+        #ob1Pos = array([-50,-50,-50])
+        #ob1 = Obstacle(ob1Pos, 30)
          
-        ob2Pos = array([80,-50,-50])
-        ob2 = Obstacle(ob2Pos, 20)
+        #ob2Pos = array([80,-50,-50])
+        #ob2 = Obstacle(ob2Pos, 20)
 
-        originRef = Obstacle(array([0.1, 0.1, 0.1]), 10)
+        # originRef = Obstacle(array([0.1, 0.1, 0.1]), 10)
          
         #add obstacles to the world
-        self.world.addObstacle(ob1)
-        self.world.addObstacle(originRef)
+        # self.world.addObstacle(ob1)
+        # self.world.addObstacle(originRef)
         
         
 #called at a fixed 30fps always
@@ -96,10 +97,22 @@ class Simulator(object):
             agent.moveAgent(self.world)
 
         for ball in self.world.balls:  
-            if len(self.ballWPs) > 0:  
-                ball.moveBall(self.ballWPs[self.currWP], 1)
-                if distBetween(ball.position, self.ballWPs[self.currWP]) < 0.5:
-                    self.currWP = (self.currWP + 1)%len(self.ballWPs)
+            #BALL IS GOAL       
+            if ball.position[0] <= -world.width +0.5 and ball.position[1]>-50 and ball.position[1]<50:
+                self.scoreTeam1=self.scoreTeam1+1
+                ball.position=self.ballInitialPosition  
+                for i in range(0, self.teamSize*2):
+                    self.world.agents[i].position=self.teamPosition[i]
+            if ball.position[0] >= world.width -0.5 and ball.position[1]>-50 and ball.position[1]<50:
+                self.scoreTeam2=self.scoreTeam2+1
+                ball.position=self.ballInitialPosition  
+                for i in range(0, self.teamSize*2):
+                    self.world.agents[i].position=self.teamPosition[i]
+            ball.updatePhysics(self.world)                
+        #     if len(self.ballWPs) > 0:  
+        #         ball.moveBall(self.ballWPs[self.currWP], 1)
+        #         if distBetween(ball.position, self.ballWPs[self.currWP]) < 0.5:
+        #             self.currWP = (self.currWP + 1)%len(self.ballWPs)
                     # if len(self.ballWPs) > 0:
                     #     self.ballWPs.remove(self.ballWPs[0])
 
@@ -140,7 +153,7 @@ class Simulator(object):
         fig = plt.figure(figsize=(16,12))
         ax = fig.add_subplot(111, projection='3d') 
         ax.view_init(elev = 30)
-        ax.set_xlabel("X")
+        ax.set_xlabel(self.world.teams[0].name +'  '+str(self.scoreTeam1) + ' - ' + str(self.scoreTeam2)+'  '+self.world.teams[1].name )
         ax.set_ylabel("Y")
         ax.set_zlabel("Z")    
         fname = self.imageDirName + '/' + str(int(100000000+loopIndex)) + '.png' # name the file 
@@ -155,7 +168,7 @@ class Simulator(object):
 #set the size of the world
 world = World(150, 150)
 #specify which world to simulate, total simulation time, and frammerate for video
-sim = Simulator(world, 120, 30, "images")
+sim = Simulator(world, 20, 1, "images")
 #run the simulation
 sim.run()
 

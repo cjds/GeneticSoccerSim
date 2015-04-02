@@ -13,7 +13,7 @@ from LinearAlegebraUtils import rotMatrixFromYPR, getYPRFromVector, normalize,cl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from Ball import Ball
-from Obstacle import Obstacle
+from Obstacle import Obstacle,GoalObstacle  
 from SimTime import SimTime
 from StatsTracker import StatsTracker
 
@@ -101,8 +101,8 @@ class Agent(object):
     Logic is placed in Brain.takeStep() method.
     '''  
     def moveAgent(self, world):
-        myTeam, enemyTeam, balls, obstacles = self.buildEgoCentricRepresentationOfWorld(world)
-        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, obstacles)
+        myTeam, enemyTeam, balls, obstacles, goals = self.buildEgoCentricRepresentationOfWorld(world)
+        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, obstacles, goals)
         #handle movements
         if not self.isStunned:
             self.rotateAgent(deltaRot)
@@ -141,6 +141,7 @@ class Agent(object):
         enemyTeam = []
         balls = []
         obstacles =[]
+        goals=[]
         for agent in world.agents:
             if agent != self:
                 agentToAppend = Agent(agent.team, self.getEgoCentricOf(agent), agent.rotation - self.rotation, agent.brain, agent.turnRate, agent.colRadius, agent.drawRadius)
@@ -158,7 +159,17 @@ class Agent(object):
         for obstacle in world.obstacles:
             obstacleToAppend = Obstacle(self.getEgoCentricOf(obstacle), obstacle.radius)
             obstacles.append(obstacleToAppend)
-        return myTeam, enemyTeam, balls, obstacles
+        for team in world.teams:
+            if team != self.team:
+                goalPosition=np.array(team.goal.position)
+                goalPosition[1]=goalPosition[1]+50
+                goalToAppend=GoalObstacle(goalPosition,team.goal.height,team.goal.width)
+                goals.append(self.getEgoCentricOf(goalToAppend))
+        goalPosition=np.array(self.team.goal.position)
+        goalPosition[1]=goalPosition[1]+50  
+        goalToAppend=GoalObstacle(goalPosition,self.team.goal.height,self.team.goal.width)      
+        goals.append(self.getEgoCentricOf(goalToAppend))
+        return myTeam, enemyTeam, balls, obstacles, goals
     
     '''
     Rotate Agent by rotation specified as YPR
@@ -204,8 +215,8 @@ class RestrictedAgent(Agent):
         self.maxDistance = maxDistance
 
     def moveAgent(self, world):
-        myTeam, enemyTeam, balls, obstacles = self.buildEgoCentricRepresentationOfWorld(world)
-        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, obstacles)
+        myTeam, enemyTeam, balls, obstacles, goals = self.buildEgoCentricRepresentationOfWorld(world)
+        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, obstacles[myTeam.goal,enemyTeam.goal])
         #handle movements
         if not self.isStunned:
             #check if agent is within required area

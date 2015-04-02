@@ -26,9 +26,10 @@ class Ball(object):
         self.position = position.astype(double)
         self.radius = 5
         self.uid = id(self)
-        self.isDynamic = False
+        self.isDynamic = True
         self.velocity = array([0, 0, 0])
-        
+        self.wentOutside=False
+
     def draw(self,subplot):
         #draw a sphere of specified size at specified position
         u = np.linspace(0, 2 * np.pi, 25)
