@@ -8,8 +8,7 @@ authors: Arindam Bose (arindam.1993@gmail.com), Tucker Balch (trbalch@gmail.com)
 import numpy as np
 from numpy import *
 from numpy.linalg import *
-from LinearAlegebraUtils import rotMatrixFromYPR, getYPRFromVector, normalize,clampRotation,\
-    distBetween
+from LinearAlegebraUtils import rotMatrixFromYPR, getYPRFromVector, normalize, reflectVector, clampRotation,distBetween
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from Ball import Ball
@@ -216,7 +215,7 @@ class RestrictedAgent(Agent):
 
     def moveAgent(self, world):
         myTeam, enemyTeam, balls, obstacles, goals = self.buildEgoCentricRepresentationOfWorld(world)
-        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, obstacles[myTeam.goal,enemyTeam.goal])
+        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, goals)
         #handle movements
         if not self.isStunned:
             #check if agent is within required area

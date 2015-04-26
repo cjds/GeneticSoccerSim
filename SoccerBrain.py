@@ -11,7 +11,7 @@ from Obstacle import Obstacle
 from LinearAlegebraUtils import getYPRFromVector
 import numpy as np
 from Action import Stun, Kick
-from NavUtils import getObstacleAvoidance, getTeamNearestAvoidance, getRestrictionField
+from NavUtils import getObstacleAvoidance, getTeamNearestAvoidance, getRestrictionField, distBetween
 class  SoccerBrain(object):
     '''
     classdocs
@@ -27,14 +27,14 @@ class  SoccerBrain(object):
         actions.append(Kick(balls[0], [1, 0, 0], 100))        
         deltaPos = np.array([1, 0, 0])
         # avoidMovement = getObstacleAvoidance(obstacles)
-        # avoidEnemyMovement = getTeamNearestAvoidance(enemyTeam)
+        avoidEnemyMovement = getTeamNearestAvoidance(enemyTeam)
+        avoidTeamMovement = getTeamNearestAvoidance(myTeam)
         # fenceAvoidMovement = getRestrictionField(obstacles[1], 200)
         movement = balls[0].position
         goalDirection=goals[0]
-        goalDirection[0]=goalDirection[0]
         #Move the Y position to the center
         #goalDirection[0]=goalDirection[0]+50;
-        deltaRot = getYPRFromVector(1.5* goalDirection + 1.5 * movement)
+        deltaRot = getYPRFromVector(0.5* goalDirection + 1.5 * movement + 1.5 * avoidTeamMovement + 1.5 * avoidEnemyMovement)
         #deltaRot = getYPRFromVector(movement)
         return deltaPos, deltaRot, actions
         

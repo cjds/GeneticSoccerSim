@@ -24,8 +24,6 @@ class World(object):
         self.height = height
         
     def draw(self, ax):
-        
- 
         ax.set_xlim3d(-self.width,self.width)
         ax.set_ylim3d(-self.width,self.width)
         ax.set_zlim3d(-self.height,self.height)

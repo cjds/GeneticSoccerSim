@@ -28,7 +28,7 @@ class Ball(object):
         self.uid = id(self)
         self.isDynamic = True
         self.velocity = array([0, 0, 0])
-        self.wentOutside=False
+
 
     def draw(self,subplot):
         #draw a sphere of specified size at specified position
@@ -47,6 +47,11 @@ class Ball(object):
             moveVector = normalize(moveVector)
             self.position += moveVector * float(speed)
             
+    def resetBall(self,position):
+        self.position=position.astype(double)
+        self.velocity=array([0, 0, 0])
+
+
     def updatePhysics(self, world):
         if self.isDynamic:
             #move with velocity

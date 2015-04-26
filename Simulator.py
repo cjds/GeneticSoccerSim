@@ -97,24 +97,20 @@ class Simulator(object):
             agent.moveAgent(self.world)
 
         for ball in self.world.balls:  
-            #BALL IS GOAL       
+            #BALL IS IN GOAL       
             if ball.position[0] <= -world.width +0.5 and ball.position[1]>-50 and ball.position[1]<50:
+                #team 1 scored
                 self.scoreTeam1=self.scoreTeam1+1
-                ball.position=self.ballInitialPosition  
+                #reset everything
+                ball.resetBall(self.ballInitialPosition)
                 for i in range(0, self.teamSize*2):
                     self.world.agents[i].position=self.teamPosition[i]
             if ball.position[0] >= world.width -0.5 and ball.position[1]>-50 and ball.position[1]<50:
                 self.scoreTeam2=self.scoreTeam2+1
-                ball.position=self.ballInitialPosition  
+                ball.resetBall(self.ballInitialPosition)
                 for i in range(0, self.teamSize*2):
                     self.world.agents[i].position=self.teamPosition[i]
             ball.updatePhysics(self.world)                
-        #     if len(self.ballWPs) > 0:  
-        #         ball.moveBall(self.ballWPs[self.currWP], 1)
-        #         if distBetween(ball.position, self.ballWPs[self.currWP]) < 0.5:
-        #             self.currWP = (self.currWP + 1)%len(self.ballWPs)
-                    # if len(self.ballWPs) > 0:
-                    #     self.ballWPs.remove(self.ballWPs[0])
 
     
 #Called at specifed fps
@@ -134,7 +130,7 @@ class Simulator(object):
         SimTime.deltaTime = double(1/ self.fps)
         drawIndex = 0
         physicsIndex = 0
-        while(currTime < self.simTime):
+        while(currTime < self.simTime and self.scoreTeam1<5 and self.scoreTeam1<5 ):
             self.fixedLoop()
             SimTime.time = currTime
             currProb = double(drawIndex)/double(physicsIndex+1)
@@ -168,7 +164,7 @@ class Simulator(object):
 #set the size of the world
 world = World(150, 150)
 #specify which world to simulate, total simulation time, and frammerate for video
-sim = Simulator(world, 20, 1, "images")
+sim = Simulator(world, 200, 1, "images1")
 #run the simulation
 sim.run()
 
