@@ -15,6 +15,7 @@ from Ball import Ball
 from Obstacle import Obstacle,GoalObstacle  
 from SimTime import SimTime
 from StatsTracker import StatsTracker
+from GridCell import GridCell
 
 class Agent(object):
     '''
@@ -23,7 +24,7 @@ class Agent(object):
     '''
 
 
-    def __init__(self, team, position, rotation, brain, turnRate, colRadius, drawRadius):
+    def __init__(self, team, position, rotation, brain, turnRate, colRadius, drawRadius,uid):
         self.position = position.astype(float)        #numpy array [x, y ,z]
         self.rotation = rotation.astype(float)        #numpy array [yaw, pitch, roll] (in degrees)
         self.colRadius = colRadius      #float size of collision sphere
@@ -36,7 +37,7 @@ class Agent(object):
         self.turnRate = turnRate
         self.maxRot = array([turnRate, turnRate, turnRate])           #max YPR in degrees the agent can rotate in each frame
         self.brain = brain
-        self.uid = id(self)            #unique identifier
+        self.uid = uid            #unique identifier
         self.isStunned = False
         self.lastStunned = float(-1)          #Last time agent was stunned
         self.stunDuration = float(-1)         #Duration for which I am stunned
@@ -94,14 +95,26 @@ class Agent(object):
         posVector = otherPosition - self.position
         egoCentric = dot(posVector, rotMatInverse)
         return egoCentric
-    
+
+    '''
+    The above method is to be removed and replaced by this version of the method which is more generic
+    '''
+
+    def getEgoCentricOfPoint(self, point):
+        otherPosition = point;
+        rotMat = rotMatrixFromYPR(self.rotation)
+        rotMatInverse = inv(rotMat)
+        posVector = otherPosition - self.position
+        egoCentric = dot(posVector, rotMatInverse)
+        return egoCentric
+        
     '''
     Moves the agent, given information about the world, places restrictions on motion, called by the simulator.
     Logic is placed in Brain.takeStep() method.
     '''  
     def moveAgent(self, world):
-        myTeam, enemyTeam, balls, obstacles, goals = self.buildEgoCentricRepresentationOfWorld(world)
-        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, obstacles, goals)
+        myTeam, enemyTeam, balls, obstacles, goals,gridCells = self.buildEgoCentricRepresentationOfWorld(world)
+        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, obstacles, goals,gridCells, self.uid)
         #handle movements
         if not self.isStunned:
             self.rotateAgent(deltaRot)
@@ -116,12 +129,13 @@ class Agent(object):
                         if agent.getUID() == action.agentUID:
                             if distBetween(self.position, agent.position) < self.stunRange:
                                 agent.stun(action.duration)
-                #handle kick action
+                #handle kick acgrdtion
                 if action.__class__.__name__ == 'Kick':
                     for ball in world.balls:
                         if ball.getUID() == action.ballUID:
                             if distBetween(self.position, ball.position) < 20:
                                 globalDirection = dot(action.direction, rotMatrixFromYPR(self.rotation))
+                                #globalDirection=action.direction
                                 ball.kick(globalDirection, action.intensity)
         #Unstun Self
         if self.isStunned:
@@ -141,9 +155,10 @@ class Agent(object):
         balls = []
         obstacles =[]
         goals=[]
+        grid=[]
         for agent in world.agents:
             if agent != self:
-                agentToAppend = Agent(agent.team, self.getEgoCentricOf(agent), agent.rotation - self.rotation, agent.brain, agent.turnRate, agent.colRadius, agent.drawRadius)
+                agentToAppend = Agent(agent.team, self.getEgoCentricOf(agent), agent.rotation - self.rotation, agent.brain, agent.turnRate, agent.colRadius, agent.drawRadius,agent.uid)
                 agentToAppend.setUID(agent.getUID())
                 if agent.isStunned:
                     agentToAppend.isStunned = True
@@ -158,17 +173,23 @@ class Agent(object):
         for obstacle in world.obstacles:
             obstacleToAppend = Obstacle(self.getEgoCentricOf(obstacle), obstacle.radius)
             obstacles.append(obstacleToAppend)
+        for cell in world.gridCells:
+            cellToAppend=GridCell()
+            cellToAppend.setPoints(cell.uid,self.getEgoCentricOfPoint(cell.top),self.getEgoCentricOfPoint(cell.bottom));
+            grid.append(cellToAppend)
+
         for team in world.teams:
             if team != self.team:
                 goalPosition=np.array(team.goal.position)
                 goalPosition[1]=goalPosition[1]+50
                 goalToAppend=GoalObstacle(goalPosition,team.goal.height,team.goal.width)
-                goals.append(self.getEgoCentricOf(goalToAppend))
+                goalToAppend.position=self.getEgoCentricOf(goalToAppend)
+                goals.append(goalToAppend)
         goalPosition=np.array(self.team.goal.position)
         goalPosition[1]=goalPosition[1]+50  
         goalToAppend=GoalObstacle(goalPosition,self.team.goal.height,self.team.goal.width)      
         goals.append(self.getEgoCentricOf(goalToAppend))
-        return myTeam, enemyTeam, balls, obstacles, goals
+        return myTeam, enemyTeam, balls, obstacles, goals, grid
     
     '''
     Rotate Agent by rotation specified as YPR
@@ -214,8 +235,8 @@ class RestrictedAgent(Agent):
         self.maxDistance = maxDistance
 
     def moveAgent(self, world):
-        myTeam, enemyTeam, balls, obstacles, goals = self.buildEgoCentricRepresentationOfWorld(world)
-        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, goals)
+        myTeam, enemyTeam, balls, obstacles, goals,grid = self.buildEgoCentricRepresentationOfWorld(world)
+        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, goals,grid, self.uid)
         #handle movements
         if not self.isStunned:
             #check if agent is within required area

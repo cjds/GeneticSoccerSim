@@ -11,7 +11,7 @@ import numpy as np
 from pylab import *
 import os
 from StatsTracker import StatsTracker
-
+from GridCell import GridCell
 
 class World(object):
     
@@ -22,6 +22,11 @@ class World(object):
         self.teams=[]
         self.width = width
         self.height = height
+        self.gridCells=[]
+        for i in xrange(4):
+            for j in xrange(4):
+                g=GridCell(i*10+j,i*40,j*40,40)
+                self.gridCells.append(g)        
         
     def draw(self, ax):
         ax.set_xlim3d(-self.width,self.width)

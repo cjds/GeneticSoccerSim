@@ -21,20 +21,22 @@ class  SoccerBrain(object):
     def __init__(self):      
         pass
     
-    def takeStep(self, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[]):
+    def takeStep(self, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
 
         actions = []
-        actions.append(Kick(balls[0], [1, 0, 0], 100))        
+       # actions.append(Kick(balls[0], [1, 0, 0], 100))        
         deltaPos = np.array([1, 0, 0])
+        deltaPos = np.array([0.001, 0, 0])
         # avoidMovement = getObstacleAvoidance(obstacles)
-        avoidEnemyMovement = getTeamNearestAvoidance(enemyTeam)
-        avoidTeamMovement = getTeamNearestAvoidance(myTeam)
+        #avoidEnemyMovement = getTeamNearestAvoidance(enemyTeam)
+        #avoidTeamMovement = getTeamNearestAvoidance(myTeam)
         # fenceAvoidMovement = getRestrictionField(obstacles[1], 200)
         movement = balls[0].position
         goalDirection=goals[0]
         #Move the Y position to the center
         #goalDirection[0]=goalDirection[0]+50;
-        deltaRot = getYPRFromVector(0.5* goalDirection + 1.5 * movement + 1.5 * avoidTeamMovement + 1.5 * avoidEnemyMovement)
+        #deltaRot = getYPRFromVector(0.5* goalDirection + 1.5 * movement + 1.5 * avoidTeamMovement + 1.5 * avoidEnemyMovement)
+        deltaRot=[0,0,0]
         #deltaRot = getYPRFromVector(movement)
         return deltaPos, deltaRot, actions
         

@@ -16,7 +16,7 @@ from pylab import *
 from Ball import Ball
 from LinearAlegebraUtils import distBetween
 from PreyBrain import PreyBrain
-from PredatorBrain import PredatorBrain
+from GeneticAlgo import GeneticAlgo
 from SoccerBrain import SoccerBrain
 from Team import Team
 from SimTime import SimTime
@@ -62,15 +62,16 @@ class Simulator(object):
         self.world.teams=[predator,prey]
 
         #initialize Team 1
+        #TODO change this back
         for i in range(0,self.teamSize):
             brain = SoccerBrain()
-            agent = Agent(predator,  self.teamPosition[i], array([0,0,0]),brain, 5, 5, 5)
+            agent = Agent(predator,  self.teamPosition[i], array([0,0,0]),brain, 5, 5, 5,i)
             self.world.addAgent(agent)
 
         #initialize Team 2
         for i in range(0, self.teamSize):
-            brain = SoccerBrain()
-            agent = Agent(prey, self.teamPosition[i+self.teamSize],array([0,0,0]), brain, 5, 5, 5)
+            brain = GeneticAlgo()
+            agent = Agent(prey, self.teamPosition[i+self.teamSize],array([0,0,0]), brain, 5, 5, 5,i)
             self.world.addAgent(agent)
 
         ball=Ball (self.ballInitialPosition)
@@ -162,9 +163,9 @@ class Simulator(object):
 
 #Simulation runs here
 #set the size of the world
-world = World(150, 150)
+world = World(160, 160)
 #specify which world to simulate, total simulation time, and frammerate for video
-sim = Simulator(world, 200, 1, "images1")
+sim = Simulator(world, 60, 1, "images1")
 #run the simulation
 sim.run()
 
