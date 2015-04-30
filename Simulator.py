@@ -21,7 +21,7 @@ from SoccerBrain import SoccerBrain
 from Team import Team
 from SimTime import SimTime
 from StatsTracker import StatsTracker
-
+from Constants import Constants
 
 
 #Called once for initialization
@@ -136,7 +136,8 @@ class Simulator(object):
             SimTime.time = currTime
             currProb = double(drawIndex)/double(physicsIndex+1)
             if currProb < frameProb:
-                self.drawFrame(drawIndex)  
+                if Constants.DISPLAY_IMAGES:
+                    self.drawFrame(drawIndex)  
                 drawIndex+=1
             physicsIndex+=1
             currTime+=double(timeStep)
@@ -163,7 +164,7 @@ class Simulator(object):
 
 #Simulation runs here
 #set the size of the world
-world = World(160, 160)
+world = World(Constants.WORLD_SIZE,Constants.WORLD_SIZE)
 #specify which world to simulate, total simulation time, and frammerate for video
 sim = Simulator(world, 60, 1, "images1")
 #run the simulation
