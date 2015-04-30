@@ -19,9 +19,9 @@ class  GeneticAlgo(object):
 
     The genetic algorithm works as follows
 
-    The algorithm will play multiple games and try to decide what to do if it is in certain conditions
+    The algorithm will play multiple games and try to decide what to do if it is in certain states
 
-    The condition will be based on the following tuple (teamAreas[], enemyAreas[], ballPosition,goalPosition)
+    The state will be based on the following tuple (teamAreas[], enemyAreas[], ballPosition)
 
     The grid will be split into a 4x4 grid which each grid cell defining an area
     
@@ -123,8 +123,8 @@ class  GeneticAlgo(object):
     def baseActionShoot(self, goalObstacle, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
 		actions=[]
 		deltaPos = np.array([1, 0, 0])
-		actions.append(Kick(balls[0],-goals[0].position,100))
-		if(distBetween(balls[0].position,[0,0,0]>5)):
+		actions.append(Kick(balls[0],goals[0].position,100))
+		if(distBetween(balls[0].position,[0,0,0]>20)):
 			movement = balls[0].position
 		else:
 			movement = goals[0].position
@@ -159,7 +159,7 @@ class  GeneticAlgo(object):
     def updateFitness():
     	pass
 
-    def writeBrain(self,file):
+    def writeBrain(self):
     	pass
 
     def readBrain(self,file):
