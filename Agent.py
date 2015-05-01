@@ -175,7 +175,11 @@ class Agent(object):
             obstacles.append(obstacleToAppend)
         for cell in world.gridCells:
             cellToAppend=GridCell()
-            cellToAppend.setPoints(cell.uid,self.getEgoCentricOfPoint(cell.top),self.getEgoCentricOfPoint(cell.bottom));
+            if self.team.isEastToWest:
+                uid=cell.uid
+            else:
+                uid=15-cell.uid
+            cellToAppend.setPoints(uid,self.getEgoCentricOfPoint(cell.top),self.getEgoCentricOfPoint(cell.bottom));
             grid.append(cellToAppend)
 
         for team in world.teams:

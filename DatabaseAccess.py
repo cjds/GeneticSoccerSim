@@ -27,8 +27,10 @@ class Gene(object):
 
 class Individual(object):
 
-	def __init__(self,genes=[]):
+	def __init__(self,genes=[],id=-1):
 		self.genes=genes
+		self.id=individual
+		self.fitness=0;
 
 	def match_expression(self,team_area,enemy_area,ballPosition):
 		for  gene in self.genes:
@@ -58,8 +60,11 @@ class Individual(object):
 		if ballPosition > 15:
 			ballPosition=-1
 
-		moveType=random.randint(0,12)
-		extraInformation=random.randint(0,15)
+		moveType=random.randint(0,3)
+		if moveType==0:
+			extraInformation=random.randint(0,3)
+		else:
+			extraInformation=random.randint(0,15)
 		gene =Gene(team_areas,enemy_areas,ballPosition,moveType,extraInformation)
 		return gene
 
@@ -96,26 +101,47 @@ class Individual(object):
 		return Individual(genes)
 
 
+    def goalScored():
+    	self.fitness+=10
+
+    def goalScoredAgainst():
+    	self.fitness-=5
+
+    def randomMoveMade():
+    	self.fitness-=0.1
+
+
 class  DatabaseAccess(object):
 	def __init__(self):      
 		self.con = lite.connect('test.db')
 		self.mutationPercentage=30
 		self.crossoverPercentage=60
 
-	def saveGeneticAlgorithm(self):
-		with self.con:
-		    cur = self.con.cursor()    
-			#Change these to more useful querier
-			# cur.execute("CREATE TABLE Cars(Id INT, Name TEXT, Price INT)")
-			# cur.execute("INSERT INTO Cars VALUES(1,'Audi',52642)")
-			# cur.execute("INSERT INTO Cars VALUES(2,'Mercedes',57127)")
-			# cur.execute("INSERT INTO Cars VALUES(3,'Skoda',9000)")
-			# cur.execute("INSERT INTO Cars VALUES(4,'Volvo',29000)")
-			# cur.execute("INSERT INTO Cars VALUES(5,'Bentley',350000)")
-			# cur.execute("INSERT INTO Cars VALUES(6,'Citroen',21000)")
-			# cur.execute("INSERT INTO Cars VALUES(7,'Hummer',41400)")
-			# cur.execute("INSERT INTO Cars VALUES(8,'Volkswagen',21600)")
+	def saveStatistics(self, individual_id, randomMovesTime, fitness,goalsScored,goalsAgainst):
+		cur=self.con.cursor()
+		executeString="INSERT INTO statistics (individual_id,randomMovesTime, fitness,goalsScored,goalsAgainst) VALUES ("
+		executeString+=str(individual_id)+",'"+str(randomMovesTime)+"','"+str(fitness)+"',"+str(goalsScored)+","+str(goalsAgainst)+")"
+		cur.execute(executeString)
 
+	def loadGeneticAlgorithms(self,level):
+		cur=self.con.cursor()
+		cur.execute("SELECT * FROM individual WHERE level="+str(level));
+		rows=cur.fetchall()
+		individuals=[]
+		for row in rows
+			individual_id= row[0][0]
+			cur.execute("SELECT * FROM genes WHERE individual_id="+str(individual_id));
+			generows=cur.fetchall()		
+			genes=[]
+			for generow in generows:
+				enemy_areas=[int(x) for x in generow[3].split(",")]
+				team_areas=[int(x) for x in generow[2].split(",")]
+				gene=Gene(enemy_areas,team_areas, int(generow[4]) , int(generow[5]) , int(generow[6]))
+			genes.append(gene)
+			i =Individual(genes)
+			individuals.append(i)
+		return individuals
+	
 	def getGeneticAlgorithm(self,id):
 		cur=self.con.cursor()
 		cur.execute("SELECT * FROM individual WHERE id="+str(id) +"  LIMIT 1");
@@ -138,14 +164,16 @@ class  DatabaseAccess(object):
 		final_individual=individual1.mix_expressions(individual2)
 
 		#save in the database
-		self.saveIndividual(level,final_individual)
+		id=self.saveIndividual(level,final_individual)
+		individual.id=id
 		return final_individual
 
 	def createNewRandomAlgorithm(self,level):
 		individual=Individual()
 		for i in range(random.randint(0,40)):
 			individual.genes.append(individual.create_random_expression())
-		self.saveIndividual(level,individual)
+		id=self.saveIndividual(level,individual)
+		individual.id=id
 		return individual
 
 	def saveIndividual(self,level,individual):
@@ -168,6 +196,7 @@ class  DatabaseAccess(object):
 			cur.execute(executeString)
 
 		self.con.commit()
+		return id
 		'''
 		cur.execute("SELECT * FROM YOUR_TABLE_NAME")
 		print all the first cell of all the rows
@@ -185,8 +214,3 @@ class  DatabaseAccess(object):
     	INSERT INTO genes (individual_id,team_areas,enemy_areas,ballPosition,moveType,extraInformation)
     	VALUES (id,team_areas,enemy_areas,ballPosition,moveType,extraInformation)
     	'''
-
-db = DatabaseAccess()
-individual1=db.createNewRandomAlgorithm(1)
-individual2=db.createNewRandomAlgorithm(1)
-individual3=db.makeNewGeneticAlgorithm(individual1,individual2,2)

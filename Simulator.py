@@ -3,6 +3,25 @@
 This source code is released under the New BSD license.  Please see the LICENSE.txt file included with this software for more information
 
 authors: Arindam Bose (arindam.1993@gmail.com), Tucker Balch (trbalch@gmail.com)
+
+author: Carl Saldanha (cjds@live.com)
+
+Genetic Algorithm 
+
+This is how the genetic algorithm will be run. The two teams will be genetic algorithms facing off against each other
+
+At each level we may start with a population of 30 algorithms.
+Each algorithm will play 3 games against the next 3 opponents in the population
+The top 10 algorithms are matched with each other to create the next generation of algorithms
+The fitness of the algorithms will be tested by 3 factors 
+    1. The number of goals scored
+    2. -0.5 the number of goals scored against your
+    3. -0.01 times the algorithm makes a random choice (this is to discourage random choices in the system)
+
+The box of 16 locations will start from the left corner closest to the goal for each individual team so that the algorithm is 
+side agnostic
+
+The statistics tracker will track:
 '''
 
 
@@ -22,7 +41,7 @@ from Team import Team
 from SimTime import SimTime
 from StatsTracker import StatsTracker
 from Constants import Constants
-
+from DatabaseAccess import DatabaseAccess, Gene, Individual
 
 #Called once for initialization
 '''
@@ -32,7 +51,7 @@ Usage guidelines:
 '''
 
 class Simulator(object):
-    def __init__(self, world, simTime, fps, imageDirName):
+    def __init__(self, world, simTime, fps, imageDirName,individual1,individual2):
         self.world = world
         self.simTime = simTime
         self.fps = fps
@@ -44,6 +63,8 @@ class Simulator(object):
         self.teamSize=4
         self.ballInitialPosition=array([0,0,-150])
         self.teamPosition= [array([-50,50,-150]),array([-50,-50,-150]),array([-100,100,-150]),array([-100,-100,-150]),array([50,50,-150]),array([50,-50,-150]),array([100,100,-150]),array([100,-100,-150])]
+        self.individual1=individual1
+        self.individual2=individual2
         #self.ballWPs = [array([50.0, -100.0, 0.0]), array([0.0, 100.0, -70.0]), array([50.0, 20.0, 100.0]),array([-30.0, 50.0, -100.0]), array([80.0, -50.0, 50.0]), array([80.0, -50.0, -50.0]), array([-65.0, 20.0, 50.0]), array([-50.0, 20.0, -60.0])]
 
     def setup(self):    
@@ -102,6 +123,7 @@ class Simulator(object):
             if ball.position[0] <= -world.width +0.5 and ball.position[1]>-50 and ball.position[1]<50:
                 #team 1 scored
                 self.scoreTeam1=self.scoreTeam1+1
+
                 #reset everything
                 ball.resetBall(self.ballInitialPosition)
                 for i in range(0, self.teamSize*2):
@@ -166,9 +188,15 @@ class Simulator(object):
 #set the size of the world
 world = World(Constants.WORLD_SIZE,Constants.WORLD_SIZE)
 #specify which world to simulate, total simulation time, and frammerate for video
-sim = Simulator(world, 60, 1, "images1")
+database=DatabaseAccess()
+individuals=database.loadGeneticAlgorithms(1)
+print individuals
+
+#individual1=Individual()    
+#individual2=Individual()
+#sim = Simulator(world, 60, 1, "images1",individual1,individual2)
 #run the simulation
-sim.run()
+#sim.run()
 
 '''
 To create a video using the image sequence, execute the following command in command line.

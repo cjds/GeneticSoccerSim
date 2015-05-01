@@ -13,6 +13,7 @@ import numpy as np
 from Action import Stun, Kick
 from GridCell import GridCell
 from NavUtils import getObstacleAvoidance, getTeamNearestAvoidance, getRestrictionField
+from DatabaseAccess import DatabaseAccess, Gene, Individual
 class  GeneticAlgo(object):
     '''
     classdocs
@@ -78,8 +79,9 @@ class  GeneticAlgo(object):
     '''
 
 
-    def __init__(self):      
-        pass
+    def __init__(self,individual_brain):      
+        self.brain=individual_brain
+        
     
     def takeStep(self, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
 		if(uid==0):
@@ -101,8 +103,31 @@ class  GeneticAlgo(object):
         # #deltaRot = getYPRFromVector(movement)
         # return deltaPos, deltaRot, actions,ui
 
-    def chooseBaseAction(self):
-    	pass
+    def chooseBaseAction(self, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
+        team_area=[self.convertToGridCell(x,gridCells) for x in myTeam]
+        enemy_area=[self.convertToGridCell(x,gridCells) for x in enemyTeam]
+        ballPosition=self.convertToGridCell(balls[0],gridCells)
+
+    	moveType, extraInformation= self.individual_brain.match_expression(self,team_area,enemy_area,ballPosition)
+
+        if moveType == 0:
+            baseActionPass(extraInformation, myTeam, enemyTeam, balls, obstacles,goals,gridCells,uid)
+        elif moveType == 1:
+            baseActionShoot(myTeam, enemyTeam, balls, obstacles,goals,gridCells,uid)
+        elif moveType == 2:
+            baseActionDribble(extraInformation,myTeam, enemyTeam, balls, obstacles,goals,gridCells,uid)
+        elif moveType == 3:
+            baseActionRun(extraInformation,myTeam, enemyTeam, balls, obstacles,goals,gridCells,uid)
+
+
+
+    ##This will take in numbres an return the appropriate grid cell to which it belongs
+    def convertToGridCell(position,gridCells):
+        for i in range(0,15)
+            if gridCells[i].getIfPointIsInCell(x.position)
+                return gridCells[i].uid
+        return -1
+
 
     def baseActionPass(self, agentToPassTo, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
 		actions=[]
@@ -118,9 +143,7 @@ class  GeneticAlgo(object):
 		deltaRot = getYPRFromVector(movement)
 		return deltaPos,deltaRot,actions
 
-
-
-    def baseActionShoot(self, goalObstacle, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
+    def baseActionShoot(self, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
 		actions=[]
 		deltaPos = np.array([1, 0, 0])
 		actions.append(Kick(balls[0],goals[0].position,100))
@@ -131,27 +154,34 @@ class  GeneticAlgo(object):
 		deltaRot = getYPRFromVector(movement)
 		return deltaPos,deltaRot,actions
 
-
-    def baseActionDribble(self,direction,position,myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[]):
+    def baseActionDribble(self,gridIndex,myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[]):
 		actions=[]
-		actions.append(Kick(balls[0],np.array([1,0,0]),10))
-		deltaPos = np.array([1, 0, 0])
-		movement1 = balls[0].position
-		movement2 = goals[0].position
-		deltaRot = getYPRFromVector(1.5* movement1 + 1.5* movement2)
-		return deltaPos,deltaRot,actions
+		deltaPos=[1,0,0]
+        deltaRot=[0,0,0]
+        if(gridIndex==-1):
+            actions.append(Kick(balls[0],np.array([1,0,0]),10))
+            deltaPos = np.array([1, 0, 0])
+            movement1 = balls[0].position
+            movement2 = goals[0].position
+            deltaRot = getYPRFromVector(1.5* movement1 + 1.5* movement2)
+        else:
+            movement= gridCells[gridIndex].getCenterPoint()
+            deltaRot = getYPRFromVector(movement)            
+            actions.append(Kick(balls[0],deltaRot,10))
 
-    def baseActionRun(self, position, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
+        return deltaPos,deltaRot,actions
+
+    def baseActionRun(self, gridIndex, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
         # if position is -1 go toward the ball
 		actions=[]
 		deltaPos=[1,0,0]
 		deltaRot=[0,0,0]
-		if(position==-1):
+		if(gridIndex==-1):
 			deltaPos = np.array([1, 0, 0])
 			movement = balls[0].position
 			deltaRot = getYPRFromVector(movement)
 		else:
-			movement= gridCells[position].getCenterPoint()
+			movement= gridCells[gridIndex].getCenterPoint()
 			deltaRot = getYPRFromVector(movement)
 
 		return deltaPos,deltaRot,actions
@@ -164,14 +194,4 @@ class  GeneticAlgo(object):
 
     def readBrain(self,file):
     	pass
-        
-class Gene(object):
-
-    def __init__(self,teamAreas,enemyAreas,ballPosition,goalPosition):
-        self.teamAreas=teamAreas
-        self.enemyAreas=enemyAreas
-        self.ballPosition=ballPosition
-        self.goalPosition=goalPosition
-
-
         
