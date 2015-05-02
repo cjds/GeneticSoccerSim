@@ -40,9 +40,9 @@ from SoccerBrain import SoccerBrain
 from Team import Team
 from SimTime import SimTime
 from StatsTracker import StatsTracker
-from Constants import Constants
 from DatabaseAccess import DatabaseAccess, Gene, Individual
 
+import Constants
 #Called once for initialization
 '''
 Usage guidelines:
@@ -59,7 +59,7 @@ class Simulator(object):
         self.currWP = 0
         self.scoreTeam1=0
         self.scoreTeam2=0
-        self.finalScore=5
+        self.finalScore=Constants.MAX_SCORE
         self.teamSize=4
         self.ballInitialPosition=array([0,0,-150])
         self.teamPosition= [array([-50,50,-150]),array([-50,-50,-150]),array([-100,100,-150]),array([-100,-100,-150]),array([50,50,-150]),array([50,-50,-150]),array([100,100,-150]),array([100,-100,-150])]
@@ -85,14 +85,14 @@ class Simulator(object):
         #initialize Team 1
         #TODO change this back
         for i in range(0,self.teamSize):
-            brain = SoccerBrain()
-            agent = Agent(predator,  self.teamPosition[i], array([0,0,0]),brain, 5, 5, 5,i)
+            brain = GeneticAlgo(self.individual1)
+            agent = Agent(predator,  self.teamPosition[i], array([0,0,0]),brain, 0.5, 5, 5,i)
             self.world.addAgent(agent)
 
         #initialize Team 2
         for i in range(0, self.teamSize):
-            brain = GeneticAlgo()
-            agent = Agent(prey, self.teamPosition[i+self.teamSize],array([0,0,0]), brain, 5, 5, 5,i)
+            brain = GeneticAlgo(self.individual2)
+            agent = Agent(prey, self.teamPosition[i+self.teamSize],array([0,0,0]), brain, 1, 5, 5,i)
             self.world.addAgent(agent)
 
         ball=Ball (self.ballInitialPosition)
@@ -123,7 +123,8 @@ class Simulator(object):
             if ball.position[0] <= -world.width +0.5 and ball.position[1]>-50 and ball.position[1]<50:
                 #team 1 scored
                 self.scoreTeam1=self.scoreTeam1+1
-
+                self.individual1.goalScored()
+                self.individual2.goalScoredAgainst()
                 #reset everything
                 ball.resetBall(self.ballInitialPosition)
                 for i in range(0, self.teamSize*2):
@@ -153,7 +154,7 @@ class Simulator(object):
         SimTime.deltaTime = double(1/ self.fps)
         drawIndex = 0
         physicsIndex = 0
-        while(currTime < self.simTime and self.scoreTeam1<5 and self.scoreTeam1<5 ):
+        while(currTime < self.simTime and self.scoreTeam1<self.finalScore and self.scoreTeam1<self.finalScore ):
             self.fixedLoop()
             SimTime.time = currTime
             currProb = double(drawIndex)/double(physicsIndex+1)
@@ -165,9 +166,11 @@ class Simulator(object):
             currTime+=double(timeStep)
 
      
-        print "Physics ran for "+str(physicsIndex)+" steps"
-        print "Drawing ran for "+str(drawIndex)+" steps"
-        print "Agents were stunned for"+str(StatsTracker.stunTimeDict)
+        #print "Physics ran for "+str(physicsIndex)+" steps"
+        print "Score was "+str(self.scoreTeam1)+" - "+str(self.scoreTeam2)+". Game ran for "+str(physicsIndex)
+        if Constants.DISPLAY_IMAGES:
+            print "Drawing ran for "+str(drawIndex)+" steps"
+       # print "Agents were stunned for"+str(StatsTracker.stunTimeDict)
             
     def drawFrame(self, loopIndex):
         fig = plt.figure(figsize=(16,12))
@@ -183,21 +186,59 @@ class Simulator(object):
         print 'Written Frame No.'+ str(loopIndex)+' to '+ fname
         plt.close()
 
-
 #Simulation runs here
 #set the size of the world
-world = World(Constants.WORLD_SIZE,Constants.WORLD_SIZE)
+
 #specify which world to simulate, total simulation time, and frammerate for video
 database=DatabaseAccess()
-individuals=database.loadGeneticAlgorithms(1)
-print individuals
+individuals=[]
 
-#individual1=Individual()    
-#individual2=Individual()
-#sim = Simulator(world, 60, 1, "images1",individual1,individual2)
+for level in range(Constants.START_LEVEL,Constants.FINAL_LEVEL):
+    if level==Constants.START_LEVEL:
+        if Constants.START_LEVEL==0:
+            individuals=database.createRandomPopulation(0,Constants.POPULATION_SIZE)
+        else:
+            individuals=database.loadGeneticAlgorithms(Constants.START_LEVEL)
+    else: 
+        individuals=database.createNewPopulation(individuals,level)
+    size=len(individuals)
+    print "Generation "+str(level)
+    for i in range(0,size):
+        goalScored=0
+        goalsAgainst=0
+        world = World(Constants.WORLD_SIZE,Constants.WORLD_SIZE)
+        # if level==Constants.START_LEVEL:
+        #     for gene in individuals[i].genes:
+        #         print str(gene.team_areas)
+
+        individuals[i].fitness=0
+        individuals[i].randomTime=0
+        sim = Simulator(world, Constants.WORLD_MAX_TIME, 1, "images1",individuals[i],individuals[(i+1)%size])
+        sim.run()
+        goalsScored=sim.scoreTeam1
+        goalsAgainst=sim.scoreTeam2
+        print str(individuals[i].fitness)+ " 1 "+str(individuals[i].id)
+        # world = World(Constants.WORLD_SIZE,Constants.WORLD_SIZE)
+        # sim = Simulator(world, Constants.WORLD_MAX_TIME, 1, "images1",individuals[i],individuals[(i+2)%size])
+        # sim.run()
+        # goalsScored+=sim.scoreTeam1
+        # goalsAgainst+=sim.scoreTeam2
+        # print str(individuals[i].fitness)+ " 2 "
+        # world = World(Constants.WORLD_SIZE,Constants.WORLD_SIZE)
+        # sim = Simulator(world, Constants.WORLD_MAX_TIME, 1, "images1",individuals[i],individuals[(i+3)%size])
+        # sim.run()
+        # goalsScored+=sim.scoreTeam1
+        # goalsAgainst+=sim.scoreTeam2
+        # print str(individuals[i].fitness)+ " 3 "
+        database.saveStatistics( individuals[i].id, individuals[i].randomTime, individuals[i].fitness,goalsScored,goalsAgainst)
+'''
+world = World(Constants.WORLD_SIZE,Constants.WORLD_SIZE)
+individual1=Individual()    
+individual2=Individual()
+sim = Simulator(world, 60, 1, "images1",individual1,individual2)
 #run the simulation
-#sim.run()
-
+sim.run()
+'''
 '''
 To create a video using the image sequence, execute the following command in command line.
 >ffmpeg -framerate 30 -i "1%08d.png" -r 30 outPut.mp4

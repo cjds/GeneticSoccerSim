@@ -12,6 +12,7 @@ from pylab import *
 import os
 from StatsTracker import StatsTracker
 from GridCell import GridCell
+import Constants 
 
 class World(object):
     
@@ -23,9 +24,11 @@ class World(object):
         self.width = width
         self.height = height
         self.gridCells=[]
-        for i in xrange(4):
-            for j in xrange(4):
-                g=GridCell(i*10+j,i*40,j*40,40)
+        count=0
+        for i in range(-2,2):
+            for j in range(-2,2):
+                g=GridCell(count,i*(Constants.WORLD_SIZE/2),j*(Constants.WORLD_SIZE/2),Constants.WORLD_SIZE/2)
+                count+=1
                 self.gridCells.append(g)        
         
     def draw(self, ax):

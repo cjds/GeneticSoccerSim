@@ -8,12 +8,14 @@ authors: Carl Saladnha (csladanha3@gatech.edu)
 from Agent import Agent
 from Ball import Ball
 from Obstacle import Obstacle
-from LinearAlegebraUtils import getYPRFromVector,distBetween
+from LinearAlegebraUtils import *
 import numpy as np
 from Action import Stun, Kick
 from GridCell import GridCell
 from NavUtils import getObstacleAvoidance, getTeamNearestAvoidance, getRestrictionField
 from DatabaseAccess import DatabaseAccess, Gene, Individual
+import random
+
 class  GeneticAlgo(object):
     '''
     classdocs
@@ -67,14 +69,9 @@ class  GeneticAlgo(object):
     Fitness Function 
         The fitness function will be the feedback the bot gets on every move whether his move was correct or not.
         The players will be given a rating based on 
-            1. How many passes were made successfully
-            2. How long they kept the ball
-            3. How many shots they made scored
-            4. How many goal were scored against them
-
-    Bias. 
-        1 Agent will be biased to tend to run forwards (as an attacker) 
-        1 Agent will be biased to tend to run backwards in situations (as an attacker)
+            1. How many shots they made scored
+            2. How many goal were scored against them
+            3. How long they stay in possession
 
     '''
 
@@ -83,107 +80,136 @@ class  GeneticAlgo(object):
         self.brain=individual_brain
         
     
-    def takeStep(self, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
-		if(uid==0):
-			return self.baseActionShoot(13,myTeam, enemyTeam, balls, obstacles,goals,gridCells,uid)
-		else:
-			return self.baseActionRun(0,myTeam, enemyTeam, balls, obstacles,goals,gridCells,uid)
-        # actions = []
-        # actions.append(Kick(balls[0], [1, 0, 0], 100))        
-        # deltaPos = np.array([1, 0, 0])
-        # # avoidMovement = getObstacleAvoidance(obstacles)
-        # #avoidEnemyMovement = getTeamNearestAvoidance(enemyTeam)
-        # avoidTeamMovement = getTeamNearestAvoidance(myTeam)
-        # # fenceAvoidMovement = getRestrictionField(obstacles[1], 200)
-        # movement = balls[0].position
-        # goalDirection=goals[0]
-        # #Move the Y position to the center
-        # #goalDirection[0]=goalDirection[0]+50;
-        # deltaRot = getYPRFromVector(0.5* goalDirection + 1.5 * movement + 1.5 * avoidTeamMovement + 1.5 * avoidEnemyMovement)
-        # #deltaRot = getYPRFromVector(movement)
-        # return deltaPos, deltaRot, actions,ui
+    def takeStep(self, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],agent=-1):
 
-    def chooseBaseAction(self, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
+		#distance to ball
+		distance=np.sqrt(balls[0].position[0]*balls[0].position[0] + balls[0].position[1]*balls[0].position[1])
+		if distance< 30:
+			self.brain.inPossession(True)
+		else:
+			self.brain.inPossession(False)
+
+		return self.chooseBaseAction(myTeam,enemyTeam,balls,obstacles,goals,gridCells,agent)
+
+
+
+
+    def chooseBaseAction(self, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],agent=-1):
         team_area=[self.convertToGridCell(x,gridCells) for x in myTeam]
         enemy_area=[self.convertToGridCell(x,gridCells) for x in enemyTeam]
         ballPosition=self.convertToGridCell(balls[0],gridCells)
 
-    	moveType, extraInformation= self.individual_brain.match_expression(self,team_area,enemy_area,ballPosition)
+        #add some noise
+
+    	moveType, extraInformation= self.brain.match_expression(team_area,enemy_area,ballPosition)
+    	
+    	if moveType == -1:
+    		moveType=random.randint(0,3)
+    		if moveType==0:
+    			extraInformation=random.randint(0,3)
+    		else:
+    			extraInformation=random.randint(0,25)
+    			if extraInformation>15:
+    				extraInformation=-1
+    		self.brain.randomMoveMade()
 
         if moveType == 0:
-            baseActionPass(extraInformation, myTeam, enemyTeam, balls, obstacles,goals,gridCells,uid)
+           return self.baseActionPass(extraInformation, myTeam, enemyTeam, balls, obstacles,goals,gridCells,agent)
         elif moveType == 1:
-            baseActionShoot(myTeam, enemyTeam, balls, obstacles,goals,gridCells,uid)
+           return self.baseActionShoot(myTeam, enemyTeam, balls, obstacles,goals,gridCells,agent)
         elif moveType == 2:
-            baseActionDribble(extraInformation,myTeam, enemyTeam, balls, obstacles,goals,gridCells,uid)
-        elif moveType == 3:
-            baseActionRun(extraInformation,myTeam, enemyTeam, balls, obstacles,goals,gridCells,uid)
+           return self.baseActionDribble(extraInformation,myTeam, enemyTeam, balls, obstacles,goals,gridCells,agent)
+        elif moveType == 3:	
+           return self.baseActionRun(extraInformation,myTeam, enemyTeam, balls, obstacles,goals,gridCells,agent)
 
 
 
     ##This will take in numbres an return the appropriate grid cell to which it belongs
-    def convertToGridCell(position,gridCells):
-        for i in range(0,15)
-            if gridCells[i].getIfPointIsInCell(x.position)
-                return gridCells[i].uid
-        return -1
+    def convertToGridCell(self,position,gridCells):
+        for i in range(0,16):
+			if gridCells[i].getIfPointIsInCell(position.position):
+				return gridCells[i].uid
+        #if you cannot find which cell it is check it noisily. Cause of the problems with building egocentric co-ordinates
+        
+        for noise in range(1,20):
+        	
+	        for i in range(0,16):
+				#if noise ==1:
+				#	print str(map(int,gridCells[i].top))+" "+str(map(int,gridCells[i].bottom))+" "+str(map(int,position.position))
+				if gridCells[i].getIfPointIsInCellNoisy(position.position,noise):
+					return gridCells[i].uid        
+        #if all else fails return a random number
+        #raw_input('Enter a file name: ')
+        #print -1
+        return random.randint(0,15)
 
 
-    def baseActionPass(self, agentToPassTo, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
+    def baseActionPass(self, agentToPassTo, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],agent=-1):
 		actions=[]
 		angle=[0,0,0]
+		deltaRot=[0,0,0]
 		distance=0
 		for agent in myTeam:
 			if(agent.uid==agentToPassTo):
-				angle= getYPRFromVector(agent.position)
+				angle= getYPRFromVector(normalize(agent.position))
 				distance=distBetween(balls[0].position,agent.position)
 		actions.append(Kick(balls[0],angle,distance/2))
 		deltaPos = np.array([1, 0, 0])
-		movement = balls[0].position
-		deltaRot = getYPRFromVector(movement)
+		movement = normalize(balls[0].position)
+		deltaPos =movement
 		return deltaPos,deltaRot,actions
 
-    def baseActionShoot(self, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
+    def baseActionShoot(self, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],agent=-1):
 		actions=[]
 		deltaPos = np.array([1, 0, 0])
+		deltaRot = [0,0,0]
 		actions.append(Kick(balls[0],goals[0].position,100))
 		if(distBetween(balls[0].position,[0,0,0]>20)):
-			movement = balls[0].position
+			movement = normalize(balls[0].position)
 		else:
-			movement = goals[0].position
-		deltaRot = getYPRFromVector(movement)
+			movement = normalize(goals[0].position)
+		deltaPos=movement
 		return deltaPos,deltaRot,actions
 
-    def baseActionDribble(self,gridIndex,myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[]):
+    def baseActionDribble(self,gridIndex,myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],agent=0):
 		actions=[]
 		deltaPos=[1,0,0]
-        deltaRot=[0,0,0]
-        if(gridIndex==-1):
-            actions.append(Kick(balls[0],np.array([1,0,0]),10))
-            deltaPos = np.array([1, 0, 0])
-            movement1 = balls[0].position
-            movement2 = goals[0].position
-            deltaRot = getYPRFromVector(1.5* movement1 + 1.5* movement2)
-        else:
-            movement= gridCells[gridIndex].getCenterPoint()
-            deltaRot = getYPRFromVector(movement)            
-            actions.append(Kick(balls[0],deltaRot,10))
+		deltaRot=[0,0,0]
+		uid=agent.uid
+		if(gridIndex==-1):
+			actions.append(Kick(balls[0],np.array([1,0,0]),10))
+			deltaPos = np.array([1, 0, 0])
+			movement1 = balls[0].position
+			movement2 = goals[0].position
+			deltaPos = normalize( movement1 + movement2)
+		else:
+			for i in range(0,16):
+				if(gridCells[i].uid==gridIndex):
+					movement= normalize(gridCells[i].getCenterPoint())
+			deltaPos=movement
+			actions.append(Kick(balls[0],deltaRot,10))
 
-        return deltaPos,deltaRot,actions
+		return deltaPos,deltaRot,actions
 
-    def baseActionRun(self, gridIndex, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],uid=-1):
+    def baseActionRun(self, gridIndex, myTeam=[], enemyTeam=[], balls=[], obstacles=[],goals=[],gridCells=[],agent=-1):
         # if position is -1 go toward the ball
 		actions=[]
 		deltaPos=[1,0,0]
 		deltaRot=[0,0,0]
 		if(gridIndex==-1):
-			deltaPos = np.array([1, 0, 0])
-			movement = balls[0].position
-			deltaRot = getYPRFromVector(movement)
-		else:
-			movement= gridCells[gridIndex].getCenterPoint()
-			deltaRot = getYPRFromVector(movement)
 
+			deltaPos = normalize(balls[0].position)
+			#movement =normalize(balls[0].position)
+			
+			#deltaRot = getYPRFromVector(movement)
+		else:
+			for i in range(0,16):
+				if(gridCells[i].uid==gridIndex):
+					movement= normalize(gridCells[i].getCenterPoint())
+				#print str(map(int,gridl.lCells[gridIndex].magicTop))+"  "+ str(map(int,gridCells[gridIndex].magicBottom))+" "+str(agent.isEastToWest)
+			#deltaRot = getYPRFromVector(5*movement)-agent.rotation
+			deltaPos = movement
+			
 		return deltaPos,deltaRot,actions
 
     def updateFitness():

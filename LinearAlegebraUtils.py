@@ -5,7 +5,6 @@ This source code is released under the New BSD license.  Please see the LICENSE.
 authors: Arindam Bose (arindam.1993@gmail.com), Tucker Balch (trbalch@gmail.com)
 '''
 
-
 from numpy import *
 import numpy as np
 

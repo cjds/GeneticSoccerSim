@@ -20,7 +20,7 @@ class Team(object):
         self.color = color
         self.goal=goal
         self.fitness=0
-        if goal.position[0]<0
+        if goal.position[0]<0:
             self.isEastToWest=True;
         else:
             self.isEastToWest=False;

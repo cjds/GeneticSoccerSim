@@ -16,6 +16,7 @@ from Obstacle import Obstacle,GoalObstacle
 from SimTime import SimTime
 from StatsTracker import StatsTracker
 from GridCell import GridCell
+import Constants
 
 class Agent(object):
     '''
@@ -33,7 +34,7 @@ class Agent(object):
         self.forward = dot(array([1, 0, 0]), rotMatrixFromYPR(rotation))    #unit vector in forward direction of agent
         self.right = dot(array([0, 1, 0]), rotMatrixFromYPR(rotation))      #unit vector in right direction of agent
         self.up = cross(self.forward, self.right)       #unit vector pointing upwards
-        self.maxMove = double(0.6666)             #max distance the agent can move in each frame
+        self.maxMove = double(0.5)             #max distance the agent can move in each frame
         self.turnRate = turnRate
         self.maxRot = array([turnRate, turnRate, turnRate])           #max YPR in degrees the agent can rotate in each frame
         self.brain = brain
@@ -42,6 +43,7 @@ class Agent(object):
         self.lastStunned = float(-1)          #Last time agent was stunned
         self.stunDuration = float(-1)         #Duration for which I am stunned
         self.stunRange = 15
+        self.maxDistance=Constants.WORLD_SIZE
 
  
     '''
@@ -94,7 +96,7 @@ class Agent(object):
         rotMatInverse = inv(rotMat)
         posVector = otherPosition - self.position
         egoCentric = dot(posVector, rotMatInverse)
-        return egoCentric
+        return posVector
 
     '''
     The above method is to be removed and replaced by this version of the method which is more generic
@@ -102,11 +104,11 @@ class Agent(object):
 
     def getEgoCentricOfPoint(self, point):
         otherPosition = point;
-        rotMat = rotMatrixFromYPR(self.rotation)
-        rotMatInverse = inv(rotMat)
+        #rotMat = rotMatrixFromYPR(self.rotation)
+        #rotMatInverse = inv(rotMat)
         posVector = otherPosition - self.position
-        egoCentric = dot(posVector, rotMatInverse)
-        return egoCentric
+        #egoCentric = dot(posVector, rotMatInverse)
+        return posVector
         
     '''
     Moves the agent, given information about the world, places restrictions on motion, called by the simulator.
@@ -114,14 +116,19 @@ class Agent(object):
     '''  
     def moveAgent(self, world):
         myTeam, enemyTeam, balls, obstacles, goals,gridCells = self.buildEgoCentricRepresentationOfWorld(world)
-        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, obstacles, goals,gridCells, self.uid)
+        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, obstacles, goals,gridCells, self)
         #handle movements
         if not self.isStunned:
-            self.rotateAgent(deltaRot)
-            self.translateAgent(deltaPos)
+            if self.position[0]< self.maxDistance and self.position[0]> -self.maxDistance and self.position[1]< self.maxDistance and self.position[1]> -self.maxDistance:            
+                #TODO GODDAMMIT I'm so tiredd of this over rotating// Fuck thispz
+                self.rotateAgent(deltaRot)
+                self.translateAgent(deltaPos)
+            else: 
+                self.position =array([0,0,-150])
             
         #handle actions
-        if not self.isStunned:
+
+
             for action in actions:
                 #handle stun action
                 if action.__class__.__name__ == 'Stun':
@@ -157,7 +164,7 @@ class Agent(object):
         goals=[]
         grid=[]
         for agent in world.agents:
-            if agent != self:
+            #if agent != self:
                 agentToAppend = Agent(agent.team, self.getEgoCentricOf(agent), agent.rotation - self.rotation, agent.brain, agent.turnRate, agent.colRadius, agent.drawRadius,agent.uid)
                 agentToAppend.setUID(agent.getUID())
                 if agent.isStunned:
@@ -173,15 +180,18 @@ class Agent(object):
         for obstacle in world.obstacles:
             obstacleToAppend = Obstacle(self.getEgoCentricOf(obstacle), obstacle.radius)
             obstacles.append(obstacleToAppend)
+       # print "This is it"
         for cell in world.gridCells:
             cellToAppend=GridCell()
+            #print str(map(int,self.getEgoCentricOfPoint(cell.top)))+" "+str(map(int,self.getEgoCentricOfPoint(cell.bottom)))+" "+str(map(int,cell.top))+" "+str(map(int,cell.bottom))   
             if self.team.isEastToWest:
                 uid=cell.uid
             else:
                 uid=15-cell.uid
-            cellToAppend.setPoints(uid,self.getEgoCentricOfPoint(cell.top),self.getEgoCentricOfPoint(cell.bottom));
+            cellToAppend.setPoints(uid,self.getEgoCentricOfPoint(cell.top),self.getEgoCentricOfPoint(cell.bottom),cell);
             grid.append(cellToAppend)
 
+        # raw_input('Enter a file name: ')
         for team in world.teams:
             if team != self.team:
                 goalPosition=np.array(team.goal.position)
@@ -240,7 +250,7 @@ class RestrictedAgent(Agent):
 
     def moveAgent(self, world):
         myTeam, enemyTeam, balls, obstacles, goals,grid = self.buildEgoCentricRepresentationOfWorld(world)
-        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, goals,grid, self.uid)
+        deltaPos, deltaRot, actions = self.brain.takeStep(myTeam, enemyTeam, balls, goals,grid, self)
         #handle movements
         if not self.isStunned:
             #check if agent is within required area
